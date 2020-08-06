@@ -6,30 +6,82 @@
     </title>
     <meta charset="utf-8">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/js/all.min.js" integrity="sha512-YSdqvJoZr83hj76AIVdOcvLWYMWzy6sJyIMic2aQz5kh2bPTd9dzY3NtdeEAzPp/PhgZqr4aJObB3ym/vsItMg==" crossorigin="anonymous"></script>
+    <style>
+        .keyboard {
+            background:#000;
+            padding:0 10px;
+            display:inline-block;
+        }
 
+        [data-tone] {
+            height:200px;
+            margin-right:10px;
+            background:#fff;
+            border:1px #000 solid;
+            border-bottom-left-radius: 7px;
+            border-bottom-right-radius: 7px;
+            font-size:18pt;
+            ustify-content: center;
+            width:40px;
+            display: inline-flex;
+            align-items: flex-end;
+        }
+
+        [data-tone]:last-child {
+            margin-right:0;
+        }
+
+        [data-tone]:active, [data-tone].active {
+            background:#aaccff;
+        }
+    </style>
 </head>
 <body>
 <h1>Sounds!</h1>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="keyboard">
+                <button data-tone="a">A</button>
+                <button data-tone="b">B</button>
+                <button data-tone="c">C</button>
+                <button data-tone="d">D</button>
+                <button data-tone="e">E</button>
+                <button data-tone="f">F</button>
+                <button data-tone="g">G</button>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <h2>Your Songs</h2>
 
-<button data-tone="a">A</button>
-<button data-tone="b">B</button>
-<button data-tone="c">C</button>
-<button data-tone="d">D</button>
-<button data-tone="e">E</button>
-<button data-tone="f">F</button>
-<button data-tone="g">G</button>
+            <ul id="library">
 
-<label>
-    <input type="checkbox" id="keyboard"> Play with Keyboard
-</label>
+            </ul>
+            <input type="file" id="songfile"> <button id="importSong">Upload</button>
+        </div>
+    </div>
+    <div class="row mt-3">
+        <div class="col-md-12">
+            <label>
+                <input type="checkbox" id="keyboard"> Play with Keyboard
+            </label>
 
-<label>
-    <button id="record">Record</button>
-</label>
+            <label>
+                <button id="record">Record</button>
+            </label>
 
-<label>
-    <button id="play" disabled>Play</button>
-</label>
+            <label>
+                <button id="play" disabled><i class="far fa-play-circle"></i> Play</button>
+            </label>
+
+            <label>
+                <button id="save">Save</button>
+            </label>
+        </div>
+    </div>
+</div>
+
 
 <script
         src="http://code.jquery.com/jquery-3.5.1.min.js"
@@ -43,6 +95,9 @@
     var recordingOffset = null;
     var playback = false;
     var position = 0;
+    var library = [];
+    var validKeys = ['a','b','c','d','e','f','g'];
+
     function play(tone) {
         var audio = new Audio('wav/'+tone+'.wav');
         audio.play();
@@ -57,17 +112,69 @@
     }
 
     $(document).ready(function() {
+        if (typeof(Storage) !== "undefined") {
+            if(localStorage.getItem("library") !== null) {
+                library = JSON.parse(localStorage.getItem("library"));
+            }
+        }
+        refreshLibrary();
+
         $('[data-tone]').mousedown(function() {
             play($(this).data('tone'));
+        });
+
+        $('#library').on('click','.play',function() {
+            var song = $(this).parent().data('id');
+            $("[data-id='"+song+"']").data('play',true);
+            $("[data-id='"+song+"']").data('loop',false);
+            $("[data-id='"+song+"']").data('position',0);
+            nextNote(song)
+        })
+
+        $('#library').on('click','.loop',function() {
+            var song = $(this).parent().data('id');
+            if($("[data-id='"+song+"']").data('loop')) {
+                $("[data-id='"+song+"']").data('play',false);
+                $("[data-id='"+song+"']").data('loop',false);
+                $("[data-id='"+song+"']").data('position',0);
+                $(this).html('<i class="fas fa-redo fa-2x"></i>')
+            }
+            else {
+                $("[data-id='"+song+"']").data('play',true);
+                $("[data-id='"+song+"']").data('loop',true);
+                $("[data-id='"+song+"']").data('position',0);
+                $(this).html('<i class="far fa-stop-circle fa-2x"></i>')
+                nextNote(song)
+            }
+        })
+
+        $('#library').on('click','.delete',function() {
+            var song = $(this).parent().data('id');
+            library.splice(song,1);
+            if (typeof(Storage) !== "undefined") {
+                localStorage.setItem("library", JSON.stringify(library));
+            }
+            $(this).parent().remove();
+        })
+
+        $('#library').on('click','.download',function() {
+            var song = $(this).parent().data('id');
+            downloadSong(song);
         })
     })
 
     $(document).keydown(function(e){
         if($('#keyboard').is(':checked')) {
-            var validKeys = ['a','b','c','d','e','f','g'];
             if(validKeys.includes(e.key)) {
+                $("[data-tone='"+e.key+"']").addClass('active');
                 play(e.key);
             }
+        }
+    });
+
+    $(document).keyup(function(e) {
+        if(validKeys.includes(e.key)) {
+            $("[data-tone='"+e.key+"']").removeClass('active');
         }
     });
 
@@ -111,6 +218,116 @@
                 setTimeout(function() {replay()}, recording[position].offset);
             }
         }
+    }
+
+    $('#save').click(function() {
+        var title = prompt('Enter a title for your tune!',"");
+        library.push({
+            title: title,
+            recording: recording
+        });
+        if (typeof(Storage) !== "undefined") {
+            localStorage.setItem("library", JSON.stringify(library));
+        }
+        refreshLibrary();
+    });
+
+
+    function nextNote(song) {
+        if($("[data-id='"+song+"']").data('play')) {
+            var pos = $("[data-id='"+song+"']").data('position');
+            play(library[song].recording[pos].tone);
+            pos++;
+            $("[data-id='"+song+"']").data('position',pos);
+            if(library[song].recording.length == pos) {
+                if(!$("[data-id='"+song+"']").data('loop')) {
+                    $("[data-id='"+song+"']").data('play',false);
+                    $("[data-id='"+song+"']").data('position',0);
+                }
+                else {
+                    $("[data-id='"+song+"']").data('position',0);
+                    setTimeout(function() {nextNote(song)}, library[song].recording[0].offset);
+                }
+            }
+            else {
+                setTimeout(function() {nextNote(song)}, library[song].recording[pos].offset);
+            }
+        }
+    }
+
+    function downloadSong(song) {
+        var element = document.createElement('a');
+        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(library[song])));
+        element.setAttribute('download', library[song].title.replace(/ /g, "-") + ".smp");
+
+        element.style.display = 'none';
+        document.body.appendChild(element);
+
+        element.click();
+
+        document.body.removeChild(element);
+    }
+
+    $('#importSong').click(function() {
+        var fr=new FileReader();
+        var error = false;
+        fr.onload=function(){
+            try {
+                var song = JSON.parse(fr.result);
+                if(!("title" in song) || !("recording" in song)) {
+                    alert('Oops! This doesn\'t look like a valid smp file!');
+                    error = true;
+                    return false;
+                }
+                if((typeof song.recording !== "object") || song.recording.length == 0) {
+                    alert('Oops! This doesn\'t look like a valid smp file!');
+                    error = true;
+                    return false;
+                }
+                $.each(song.recording,function (key,note) {
+                    if(typeof note !== "object") {
+                        alert('Oops! This doesn\'t look like a valid smp file!');
+                        error = true;
+                        return false;
+                    }
+                    if(!("offset" in note) || !("tone" in note)) {
+                        alert('Oops! This doesn\'t look like a valid smp file!');
+                        error = true;
+                        return false;
+                    }
+                    if(typeof note.offset != "number" || note.offset < 0) {
+                        alert('Oops! This doesn\'t look like a valid smp file!');
+                        error = true;
+                        return false;
+                    }
+                    if(!validKeys.includes(note.tone)) {
+                        alert('Oops! This doesn\'t look like a valid smp file!');
+                        error = true;
+                        return false;
+                    }
+                });
+                if(!error) {
+                    library.push(song);
+                    refreshLibrary()
+                    if (typeof(Storage) !== "undefined") {
+                        localStorage.setItem("library", JSON.stringify(library));
+                    }
+                }
+            }
+            catch(e) {
+                error = true;
+                alert('Oops! This doesn\'t look like a valid smp file!');
+            }
+        }
+
+        fr.readAsText($('#songfile').get(0).files[0]);
+        });
+
+    function refreshLibrary() {
+        $('#library').empty();
+        $.each(library,function(key,value) {
+            $('#library').append('<li data-id="' + key + '">' + value.title + ' <button class="btn btn-link btn-sm p-1 play"><i class="far fa-play-circle fa-2x"></i></button> <button class="btn btn-link btn-sm p-1 loop"><i class="fas fa-redo fa-2x"></i></button> <button class="btn btn-link text-danger btn-sm p-1 delete"><i class="fas fa-trash fa-2x"></i></button> <button class="btn btn-link text-primary btn-sm p-1 download"><i class="fas fa-cloud-download-alt fa-2x"></i></button></li>');
+        });
     }
 </script>
 </body>
