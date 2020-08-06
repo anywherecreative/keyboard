@@ -75,7 +75,7 @@
             }
         }
         $.each(library,function(key,value) {
-            $('#library').append('<li data-id="' + key + '">' + value.title + ' <button class="btn btn-link btn-sm p-1 play"><i class="far fa-play-circle fa-2x"></i></button></li>');
+            $('#library').append('<li data-id="' + key + '">' + value.title + ' <button class="btn btn-link btn-sm p-1 play"><i class="far fa-play-circle fa-2x"></i></button> <button class="btn btn-link btn-sm p-1 loop"><i class="fas fa-redo"></i></button></li>');
         });
 
         $('[data-tone]').mousedown(function() {
@@ -84,8 +84,24 @@
         $('#library').on('click','.play',function() {
             var song = $(this).parent().data('id');
             $("[data-id='"+song+"']").data('play',true);
+            $("[data-id='"+song+"']").data('loop',false);
             $("[data-id='"+song+"']").data('position',0);
             nextNote(song)
+        })
+
+        $('#library').on('click','.loop',function() {
+            var song = $(this).parent().data('id');
+            if($("[data-id='"+song+"']").data('loop')) {
+                $("[data-id='"+song+"']").data('play',false);
+                $("[data-id='"+song+"']").data('loop',false);
+                $("[data-id='"+song+"']").data('position',0);
+            }
+            else {
+                $("[data-id='"+song+"']").data('play',true);
+                $("[data-id='"+song+"']").data('loop',true);
+                $("[data-id='"+song+"']").data('position',0);
+                nextNote(song)
+            }
         })
     })
 
@@ -159,8 +175,14 @@
             pos++;
             $("[data-id='"+song+"']").data('position',pos);
             if(library[song].recording.length == pos) {
-                $("[data-id='"+song+"']").data('play',false);
-                $("[data-id='"+song+"']").data('position',0);
+                if(!$("[data-id='"+song+"']").data('loop')) {
+                    $("[data-id='"+song+"']").data('play',false);
+                    $("[data-id='"+song+"']").data('position',0);
+                }
+                else {
+                    $("[data-id='"+song+"']").data('position',0);
+                    setTimeout(function() {nextNote(song)}, library[song].recording[0].offset);
+                }
             }
             else {
                 setTimeout(function() {nextNote(song)}, library[song].recording[pos].offset);
