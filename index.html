@@ -59,7 +59,7 @@
                 <button data-tone="e">E</button>
                 <button data-tone="f">F</button>
                 <button data-tone="g">G</button>
-                <button data-tone="cow" class="cow">M</button>
+                <button data-tone="m" class="m">M</button>
             </div>
         </div>
         <div class="col-md-4">
@@ -106,7 +106,7 @@
     var playback = false;
     var position = 0;
     var library = [];
-    var validKeys = ['a','b','c','d','e','f','g'];
+    var validKeys = ['a','b','c','d','e','f','g','m'];
 
     function play(tone) {
         var audio = new Audio('wav/'+tone+'.wav');
