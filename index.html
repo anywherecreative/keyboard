@@ -75,7 +75,7 @@
             }
         }
         $.each(library,function(key,value) {
-            $('#library').append('<li data-id="' + key + '">' + value.title + ' <button class="btn btn-link btn-sm p-1 play"><i class="far fa-play-circle fa-2x"></i></button> <button class="btn btn-link btn-sm p-1 loop"><i class="fas fa-redo"></i></button></li>');
+            $('#library').append('<li data-id="' + key + '">' + value.title + ' <button class="btn btn-link btn-sm p-1 play"><i class="far fa-play-circle fa-2x"></i></button> <button class="btn btn-link btn-sm p-1 loop"><i class="fas fa-redo fa-2x"></i></button> <button class="btn btn-link text-danger btn-sm p-1 delete"><i class="fas fa-trash fa-2x"></i></button></li>');
         });
 
         $('[data-tone]').mousedown(function() {
@@ -95,13 +95,24 @@
                 $("[data-id='"+song+"']").data('play',false);
                 $("[data-id='"+song+"']").data('loop',false);
                 $("[data-id='"+song+"']").data('position',0);
+                $(this).html('<i class="fas fa-redo fa-2x"></i>')
             }
             else {
                 $("[data-id='"+song+"']").data('play',true);
                 $("[data-id='"+song+"']").data('loop',true);
                 $("[data-id='"+song+"']").data('position',0);
+                $(this).html('<i class="far fa-stop-circle fa-2x"></i>')
                 nextNote(song)
             }
+        })
+
+        $('#library').on('click','.delete',function() {
+            var song = $(this).parent().data('id');
+            library.splice(song,1);
+            if (typeof(Storage) !== "undefined") {
+                localStorage.setItem("library", JSON.stringify(library));
+            }
+            $(this).parent().remove();
         })
     })
 
