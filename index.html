@@ -58,6 +58,7 @@
             <ul id="library">
 
             </ul>
+            <input type="file" id="songfile"> <button id="importSong">Upload</button>
         </div>
     </div>
     <div class="row mt-3">
@@ -95,6 +96,7 @@
     var playback = false;
     var position = 0;
     var library = [];
+    var validKeys = ['a','b','c','d','e','f','g'];
 
     function play(tone) {
         var audio = new Audio('wav/'+tone+'.wav');
@@ -116,7 +118,7 @@
             }
         }
         $.each(library,function(key,value) {
-            $('#library').append('<li data-id="' + key + '">' + value.title + ' <button class="btn btn-link btn-sm p-1 play"><i class="far fa-play-circle fa-2x"></i></button> <button class="btn btn-link btn-sm p-1 loop"><i class="fas fa-redo fa-2x"></i></button> <button class="btn btn-link text-danger btn-sm p-1 delete"><i class="fas fa-trash fa-2x"></i></button></li>');
+            $('#library').append('<li data-id="' + key + '">' + value.title + ' <button class="btn btn-link btn-sm p-1 play"><i class="far fa-play-circle fa-2x"></i></button> <button class="btn btn-link btn-sm p-1 loop"><i class="fas fa-redo fa-2x"></i></button> <button class="btn btn-link text-danger btn-sm p-1 delete"><i class="fas fa-trash fa-2x"></i></button> <button class="btn btn-link text-primary btn-sm p-1 download"><i class="fas fa-cloud-download-alt fa-2x"></i></button></li>');
         });
 
         $('[data-tone]').mousedown(function() {
@@ -156,11 +158,15 @@
             }
             $(this).parent().remove();
         })
+
+        $('#library').on('click','.download',function() {
+            var song = $(this).parent().data('id');
+            downloadSong(song);
+        })
     })
 
     $(document).keydown(function(e){
         if($('#keyboard').is(':checked')) {
-            var validKeys = ['a','b','c','d','e','f','g'];
             if(validKeys.includes(e.key)) {
                 $("[data-tone='"+e.key+"']").addClass('active');
                 play(e.key);
@@ -169,7 +175,6 @@
     });
 
     $(document).keyup(function(e) {
-        var validKeys = ['a','b','c','d','e','f','g'];
         if(validKeys.includes(e.key)) {
             $("[data-tone='"+e.key+"']").removeClass('active');
         }
@@ -226,6 +231,10 @@
         if (typeof(Storage) !== "undefined") {
             localStorage.setItem("library", JSON.stringify(library));
         }
+        $('#library').empty();
+        $.each(library,function(key,value) {
+            $('#library').append('<li data-id="' + key + '">' + value.title + ' <button class="btn btn-link btn-sm p-1 play"><i class="far fa-play-circle fa-2x"></i></button> <button class="btn btn-link btn-sm p-1 loop"><i class="fas fa-redo fa-2x"></i></button> <button class="btn btn-link text-danger btn-sm p-1 delete"><i class="fas fa-trash fa-2x"></i></button></li>');
+        });
     });
 
 
@@ -250,6 +259,77 @@
             }
         }
     }
+
+    function downloadSong(song) {
+        var element = document.createElement('a');
+        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(library[song])));
+        element.setAttribute('download', library[song].title.replace(/ /g, "-") + ".smp");
+
+        element.style.display = 'none';
+        document.body.appendChild(element);
+
+        element.click();
+
+        document.body.removeChild(element);
+    }
+
+    $('#importSong').click(function() {
+        var fr=new FileReader();
+        var error = false;
+        fr.onload=function(){
+            try {
+                var song = JSON.parse(fr.result);
+                if(!("title" in song) || !("recording" in song)) {
+                    alert('Oops! This doesn\'t look like a valid smp file!');
+                    error = true;
+                    return false;
+                }
+                if((typeof song.recording !== "object") || song.recording.length == 0) {
+                    alert('Oops! This doesn\'t look like a valid smp file!');
+                    error = true;
+                    return false;
+                }
+                $.each(song.recording,function (key,note) {
+                    if(typeof note !== "object") {
+                        alert('Oops! This doesn\'t look like a valid smp file!');
+                        error = true;
+                        return false;
+                    }
+                    if(!("offset" in note) || !("tone" in note)) {
+                        alert('Oops! This doesn\'t look like a valid smp file!');
+                        error = true;
+                        return false;
+                    }
+                    if(typeof note.offset != "number" || note.offset < 0) {
+                        alert('Oops! This doesn\'t look like a valid smp file!');
+                        error = true;
+                        return false;
+                    }
+                    if(!validKeys.includes(note.tone)) {
+                        alert('Oops! This doesn\'t look like a valid smp file!');
+                        error = true;
+                        return false;
+                    }
+                });
+                if(!error) {
+                    library.push(song);
+                    $('#library').empty();
+                    $.each(library,function(key,value) {
+                        $('#library').append('<li data-id="' + key + '">' + value.title + ' <button class="btn btn-link btn-sm p-1 play"><i class="far fa-play-circle fa-2x"></i></button> <button class="btn btn-link btn-sm p-1 loop"><i class="fas fa-redo fa-2x"></i></button> <button class="btn btn-link text-danger btn-sm p-1 delete"><i class="fas fa-trash fa-2x"></i></button></li>');
+                    });
+                    if (typeof(Storage) !== "undefined") {
+                        localStorage.setItem("library", JSON.stringify(library));
+                    }
+                }
+            }
+            catch(e) {
+                error = true;
+                alert('Oops! This doesn\'t look like a valid smp file!');
+            }
+        }
+
+        fr.readAsText($('#songfile').get(0).files[0]);
+        });
 </script>
 </body>
 </html>
