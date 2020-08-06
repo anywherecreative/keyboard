@@ -28,7 +28,7 @@
 </label>
 
 <label>
-    <button id="play">Play</button>
+    <button id="play" disabled>Play</button>
 </label>
 
 <script
@@ -76,6 +76,7 @@
             recordingOffset = null;
             isRecording = false;
             $(this).text('Record');
+            $('#play').removeAttr('disabled');
         }
         else {
             recordingOffset = + new Date();
@@ -85,9 +86,15 @@
     })
 
     $('#play').click(function() {
-        $('#this').text('Stop');
-        playback = true;
-        setTimeout(function() {replay()}, recording[position].offset);
+        if(playback) {
+            $(this).text('Play');
+            playback = false;
+        }
+        else {
+            $(this).text('Stop');
+            playback = true;
+            setTimeout(function() {replay()}, recording[position].offset);
+        }
     });
 
     function replay() {
@@ -97,6 +104,8 @@
 
             if(recording.length == position) {
                 playback = false;
+                position = 0;
+                $('#play').text('Play');
             }
             else {
                 setTimeout(function() {replay()}, recording[position].offset);
